@@ -7,6 +7,11 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
+
+class TmuxError(Exception):
+    """Custom exception for tmux-related errors"""
+    pass
+
 @dataclass
 class TmuxWindow:
     session_name: str
@@ -63,7 +68,7 @@ class TmuxOrchestrator:
             return sessions
         except subprocess.CalledProcessError as e:
             print(f"Error getting tmux sessions: {e}")
-            return []
+            raise TmuxError(f"Failed to list tmux sessions: {e}") from e
     
     def capture_window_content(self, session_name: str, window_index: int, num_lines: int = 50) -> str:
         """Safely capture the last N lines from a tmux window"""
@@ -96,27 +101,33 @@ class TmuxOrchestrator:
         except subprocess.CalledProcessError as e:
             return {"error": f"Could not get window info: {e}"}
     
-    def send_keys_to_window(self, session_name: str, window_index: int, keys: str, confirm: bool = True) -> bool:
-        """Safely send keys to a tmux window with confirmation"""
-        if self.safety_mode and confirm:
+    def send_keys_to_window(self, session_name: str, window_index: int, keys: str) -> bool:
+        """Safely send keys to a tmux window with mandatory confirmation when safety_mode is enabled
+
+        SECURITY FIX: Removed confirm parameter to prevent safety bypass
+        """
+        if self.safety_mode:
             print(f"SAFETY CHECK: About to send '{keys}' to {session_name}:{window_index}")
             response = input("Confirm? (yes/no): ")
             if response.lower() != 'yes':
                 print("Operation cancelled")
                 return False
-        
+
         try:
             cmd = ["tmux", "send-keys", "-t", f"{session_name}:{window_index}", keys]
             subprocess.run(cmd, check=True)
             return True
         except subprocess.CalledProcessError as e:
             print(f"Error sending keys: {e}")
-            return False
+            raise TmuxError(f"Failed to send keys to {session_name}:{window_index}: {e}") from e
     
-    def send_command_to_window(self, session_name: str, window_index: int, command: str, confirm: bool = True) -> bool:
-        """Send a command to a window (adds Enter automatically)"""
+    def send_command_to_window(self, session_name: str, window_index: int, command: str) -> bool:
+        """Send a command to a window (adds Enter automatically)
+
+        SECURITY FIX: Removed confirm parameter to prevent safety bypass
+        """
         # First send the command text
-        if not self.send_keys_to_window(session_name, window_index, command, confirm):
+        if not self.send_keys_to_window(session_name, window_index, command):
             return False
         # Then send the actual Enter key (C-m)
         try:
@@ -125,7 +136,7 @@ class TmuxOrchestrator:
             return True
         except subprocess.CalledProcessError as e:
             print(f"Error sending Enter key: {e}")
-            return False
+            raise TmuxError(f"Failed to send Enter key to {session_name}:{window_index}: {e}") from e
     
     def get_all_windows_status(self) -> Dict:
         """Get status of all windows across all sessions"""
