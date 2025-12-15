@@ -153,7 +153,9 @@ ls -la ~/Coding/ | grep -i "task"  # for "task templates"
 ```bash
 # Create session with project name (use hyphens for spaces)
 PROJECT_NAME="task-templates"  # or whatever the folder is called
-PROJECT_PATH="/Users/jasonedward/Coding/$PROJECT_NAME"
+# SECURITY: Use environment variable instead of hardcoded path
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Coding}"
+PROJECT_PATH="$PROJECTS_DIR/$PROJECT_NAME"
 tmux new-session -d -s $PROJECT_NAME -c "$PROJECT_PATH"
 ```
 
@@ -249,16 +251,18 @@ tmux capture-pane -t $PROJECT_NAME:2 -p | grep -i error
 ### Example: Starting "Task Templates" Project
 ```bash
 # 1. Find project
-ls -la ~/Coding/ | grep -i task
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Coding}"
+ls -la "$PROJECTS_DIR" | grep -i task
 # Found: task-templates
 
 # 2. Create session
-tmux new-session -d -s task-templates -c "/Users/jasonedward/Coding/task-templates"
+PROJECT_PATH="$PROJECTS_DIR/task-templates"
+tmux new-session -d -s task-templates -c "$PROJECT_PATH"
 
 # 3. Set up windows
 tmux rename-window -t task-templates:0 "Claude-Agent"
-tmux new-window -t task-templates -n "Shell" -c "/Users/jasonedward/Coding/task-templates"
-tmux new-window -t task-templates -n "Dev-Server" -c "/Users/jasonedward/Coding/task-templates"
+tmux new-window -t task-templates -n "Shell" -c "$PROJECT_PATH"
+tmux new-window -t task-templates -n "Dev-Server" -c "$PROJECT_PATH"
 
 # 4. Start Claude and brief
 tmux send-keys -t task-templates:0 "claude" Enter
@@ -621,21 +625,25 @@ When a command fails:
 
 #### Using send-claude-message.sh
 ```bash
+# SECURITY: Get script directory dynamically
+ORCHESTRATOR_DIR="${ORCHESTRATOR_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+SEND_MESSAGE="$ORCHESTRATOR_DIR/send-claude-message.sh"
+
 # Basic usage - ALWAYS use this instead of manual tmux commands
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh <target> "message"
+$SEND_MESSAGE <target> "message"
 
 # Examples:
 # Send to a window
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh agentic-seek:3 "Hello Claude!"
+$SEND_MESSAGE agentic-seek:3 "Hello Claude!"
 
 # Send to a specific pane in split-screen
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh tmux-orc:0.1 "Message to pane 1"
+$SEND_MESSAGE tmux-orc:0.1 "Message to pane 1"
 
 # Send complex instructions
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh glacier-backend:0 "Please check the database schema for the campaigns table and verify all columns are present"
+$SEND_MESSAGE glacier-backend:0 "Please check the database schema for the campaigns table and verify all columns are present"
 
 # Send status update requests
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh ai-chat:2 "STATUS UPDATE: What's your current progress on the authentication implementation?"
+$SEND_MESSAGE ai-chat:2 "STATUS UPDATE: What's your current progress on the authentication implementation?"
 ```
 
 #### Why Use the Script?
@@ -646,11 +654,12 @@ When a command fails:
 5. **Consistent messaging**: All agents receive messages the same way
 
 #### Script Location and Usage
-- **Location**: `/Users/jasonedward/Coding/Tmux orchestrator/send-claude-message.sh`
+- **Location**: Use `$ORCHESTRATOR_DIR/send-claude-message.sh` or set environment variable
 - **Permissions**: Already executable, ready to use
-- **Arguments**: 
+- **Arguments**:
   - First: target (session:window or session:window.pane)
   - Second: message (can contain spaces, will be properly handled)
+- **Security**: Messages are now sanitized and prefixed with "USER_MESSAGE:" to prevent prompt injection
 
 #### Common Messaging Patterns with the Script
 
@@ -660,35 +669,39 @@ When a command fails:
 tmux send-keys -t project:0 "claude" Enter
 sleep 5
 
+# Set up script path
+ORCHESTRATOR_DIR="${ORCHESTRATOR_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+SEND_MESSAGE="$ORCHESTRATOR_DIR/send-claude-message.sh"
+
 # Then use the script for the briefing
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh project:0 "You are responsible for the frontend codebase. Please start by analyzing the current project structure and identifying any immediate issues."
+$SEND_MESSAGE project:0 "You are responsible for the frontend codebase. Please start by analyzing the current project structure and identifying any immediate issues."
 ```
 
 ##### 2. Cross-Agent Coordination
 ```bash
 # Ask frontend agent about API usage
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh frontend:0 "Which API endpoints are you currently using from the backend?"
+$SEND_MESSAGE frontend:0 "Which API endpoints are you currently using from the backend?"
 
 # Share info with backend agent
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh backend:0 "Frontend is using /api/v1/campaigns and /api/v1/flows endpoints"
+$SEND_MESSAGE backend:0 "Frontend is using /api/v1/campaigns and /api/v1/flows endpoints"
 ```
 
 ##### 3. Status Checks
 ```bash
 # Quick status request
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:0 "Quick status update please"
+$SEND_MESSAGE session:0 "Quick status update please"
 
 # Detailed status request
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:0 "STATUS UPDATE: Please provide: 1) Completed tasks, 2) Current work, 3) Any blockers"
+$SEND_MESSAGE session:0 "STATUS UPDATE: Please provide: 1) Completed tasks, 2) Current work, 3) Any blockers"
 ```
 
 ##### 4. Providing Assistance
 ```bash
 # Share error information
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:0 "I see in your server window that port 3000 is already in use. Try port 3001 instead."
+$SEND_MESSAGE session:0 "I see in your server window that port 3000 is already in use. Try port 3001 instead."
 
 # Guide stuck agents
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:0 "The error you're seeing is because the virtual environment isn't activated. Run 'source venv/bin/activate' first."
+$SEND_MESSAGE session:0 "The error you're seeing is because the virtual environment isn't activated. Run 'source venv/bin/activate' first."
 ```
 
 #### OLD METHOD (DO NOT USE)
@@ -699,14 +712,16 @@ sleep 1
 tmux send-keys -t session:window Enter
 
 # ✅ DO THIS INSTEAD:
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:window "message"
+SEND_MESSAGE="${ORCHESTRATOR_DIR:-$(dirname "$0")}/send-claude-message.sh"
+$SEND_MESSAGE session:window "message"
 ```
 
 #### Checking for Responses
 After sending a message, check for the response:
 ```bash
 # Send message
-/Users/jasonedward/Coding/Tmux\ orchestrator/send-claude-message.sh session:0 "What's your status?"
+SEND_MESSAGE="${ORCHESTRATOR_DIR:-$(dirname "$0")}/send-claude-message.sh"
+$SEND_MESSAGE session:0 "What's your status?"
 
 # Wait a bit for response
 sleep 5

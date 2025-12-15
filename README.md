@@ -2,12 +2,37 @@
 
 **Run AI agents 24/7 while you sleep** - The Tmux Orchestrator enables Claude agents to work autonomously, schedule their own check-ins, and coordinate across multiple projects without human intervention.
 
+## 🚀 NEW: Service Orchestration (Solve Random Server Restarts!)
+
+**Problem**: Claude Code randomly starts/stops servers, making testing impossible. No transparency, no control.
+
+**Solution**: Dedicated service agents in tmux windows with full visibility and manual override.
+
+```bash
+# 3 commands to stable, transparent servers:
+./setup-service-orchestration.sh my-app ~/projects/my-app
+./brief-service-agents.sh my-app
+./monitor-services.sh my-app
+```
+
+**Benefits**:
+- ✅ **Persistent servers** - Run until YOU stop them
+- ✅ **Full transparency** - See exactly what's running in dedicated windows
+- ✅ **Manual control** - Override agents anytime
+- ✅ **No random restarts** - Agents ask before restarting
+- ✅ **Testing friendly** - Servers stay stable during tests
+
+📖 **[Read the Quick Start Guide](QUICKSTART-SERVICE-ORCHESTRATION.md)** | **[Full Documentation](SERVICE-ORCHESTRATION-GUIDE.md)**
+
+---
+
 ## 🤖 Key Capabilities & Autonomous Features
 
 - **Self-trigger** - Agents schedule their own check-ins and continue work autonomously
-- **Coordinate** - Project managers assign tasks to engineers across multiple codebases  
+- **Coordinate** - Project managers assign tasks to engineers across multiple codebases
 - **Persist** - Work continues even when you close your laptop
 - **Scale** - Run multiple teams working on different projects simultaneously
+- **Service Management** - Dedicated agents for each service with full transparency
 
 ## 🏗️ Architecture
 
@@ -246,11 +271,22 @@ The orchestrator can share insights between projects:
 
 ## 📚 Core Files
 
+### Service Orchestration (Server Management)
+- `setup-service-orchestration.sh` - Create service management structure
+- `brief-service-agents.sh` - Start and instruct service agents
+- `monitor-services.sh` - Check status of all services
+- `control-service.sh` - Manual service control (start/stop/restart)
+- `demo-service-orchestration.sh` - Interactive demo
+- `QUICKSTART-SERVICE-ORCHESTRATION.md` - Quick start guide
+- `SERVICE-ORCHESTRATION-GUIDE.md` - Complete documentation
+
+### General Orchestration (Multi-Agent Coordination)
 - `send-claude-message.sh` - Simplified agent communication script
 - `schedule_with_note.sh` - Self-scheduling functionality
 - `tmux_utils.py` - Tmux interaction utilities
 - `CLAUDE.md` - Agent behavior instructions
 - `LEARNINGS.md` - Accumulated knowledge base
+- `SECURITY.md` - Security documentation and best practices
 
 ## 🤝 Contributing & Optimization
 
